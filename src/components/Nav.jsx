@@ -129,8 +129,8 @@ export default function Nav() {
           flex-direction: column;
           justify-content: center;
           gap: 5px;
-          width: 32px;
-          height: 32px;
+          width: 33px;
+          height: 33px;
           background: none;
           border: none;
           cursor: pointer;
