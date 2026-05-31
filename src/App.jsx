@@ -1,12 +1,23 @@
+import { useState } from 'react'
 import Nav from './components/Nav'
 import Hero from './components/Hero'
 import Oils from './components/Oils'
 import Compare from './components/Compare'
 import HowToUse from './components/HowToUse'
+import ProductLine from './components/ProductLine'
 import Reviews from './components/Reviews'
 import BuyNow from './components/BuyNow'
 
 export default function App() {
+  const [selectedProduct, setSelectedProduct] = useState('sport')
+
+  function handleSelectProduct(id) {
+    setSelectedProduct(id)
+    setTimeout(() => {
+      document.querySelector('#buy')?.scrollIntoView({ behavior: 'smooth' })
+    }, 50)
+  }
+
   return (
     <>
       <Nav />
@@ -14,8 +25,9 @@ export default function App() {
       <Oils />
       <Compare />
       <HowToUse />
+      <ProductLine onSelect={handleSelectProduct} />
       <Reviews />
-      <BuyNow />
+      <BuyNow selectedId={selectedProduct} onSelect={setSelectedProduct} />
       <footer style={{
         background: '#0a0a0a',
         borderTop: '1px solid #2a2a2a',
@@ -26,7 +38,7 @@ export default function App() {
         fontSize: '0.8rem',
         letterSpacing: '0.05em',
       }}>
-        © 2025 iDEZ SPORT. Все права защищены.
+        © 2025 iDEZ. Все права защищены.
       </footer>
     </>
   )

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const links = [
-  { href: '#oils',    label: 'Состав' },
-  { href: '#compare', label: 'Сравнение' },
-  { href: '#how',     label: 'Применение' },
-  { href: '#reviews', label: 'Отзывы' },
+  { href: '#oils',     label: 'Состав' },
+  { href: '#compare',  label: 'Сравнение' },
+  { href: '#products', label: 'Линейка' },
+  { href: '#reviews',  label: 'Отзывы' },
 ]
 
 export default function Nav() {

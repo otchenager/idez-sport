@@ -6,14 +6,13 @@ import * as THREE from 'three'
 
 const GRN = '#00c878'
 
-/* ─── Label texture drawn on a 2048×1024 canvas ─── */
+/* ─── Label texture ─── */
 function makeLabelTex() {
   const W = 2048, H = 1024
   const cv = document.createElement('canvas')
   cv.width = W; cv.height = H
   const c = cv.getContext('2d')
 
-  // Background: soft gradient so edges look natural on the curved body
   const bg = c.createLinearGradient(0, 0, W, 0)
   bg.addColorStop(0,    '#d8e2ec')
   bg.addColorStop(0.35, '#ecf3fa')
@@ -22,26 +21,19 @@ function makeLabelTex() {
   c.fillStyle = bg
   c.fillRect(0, 0, W, H)
 
-  // Left emerald accent strip
   c.fillStyle = GRN
   c.fillRect(0, 0, 44, H)
-
-  // Thin right strip (mirrors left)
-  c.fillStyle = GRN
   c.fillRect(W - 18, 0, 18, H)
 
-  // — iDEZ (Barlow Condensed loaded via Google Fonts in index.html)
   c.font = '900 300px "Barlow Condensed", "Arial Black", Arial, sans-serif'
   c.textAlign = 'center'
   c.textBaseline = 'alphabetic'
   c.fillStyle = GRN
   c.fillText('iDEZ', W / 2, 330)
 
-  // — SPORT
   c.fillStyle = '#163860'
   c.fillText('SPORT', W / 2, 640)
 
-  // Divider
   c.strokeStyle = GRN
   c.lineWidth = 9
   c.lineCap = 'round'
@@ -49,12 +41,10 @@ function makeLabelTex() {
   c.moveTo(110, 716); c.lineTo(W - 110, 716)
   c.stroke()
 
-  // Subtitle — lighter weight
   c.font = '300 72px "Barlow", Arial, sans-serif'
   c.fillStyle = '#4a6a88'
   c.fillText('нейтрализатор запаха', W / 2, 868)
 
-  // Emerald dot (matches the brand photo)
   c.beginPath()
   c.arc(W - 120, 92, 48, 0, Math.PI * 2)
   c.fillStyle = GRN
@@ -65,152 +55,149 @@ function makeLabelTex() {
   return tex
 }
 
-/* ─── Geometry + animation ─── */
+/* ─── Bottle scene ─── */
 function BottleScene({ scrollProgress }) {
   const groupRef = useRef()
-
-  // rotY ref: starts at π so the label (u=0.5 on cylinder) faces camera (+Z)
-  // decrements each frame → right-to-left rotation from viewer's perspective
   const rotY = useRef(Math.PI)
 
-  // Create label texture immediately, then redo it once Barlow Condensed is confirmed loaded
   const [labelTex, setLabelTex] = useState(() => makeLabelTex())
   useEffect(() => {
     document.fonts.ready.then(() => setLabelTex(makeLabelTex()))
   }, [])
 
   const bodyPts = useMemo(() => [
-    new THREE.Vector2(0.001, 0.000), // center (closes bottom face)
-    new THREE.Vector2(0.355, 0.000), // base edge
-    new THREE.Vector2(0.400, 0.060), // bottom bevel
-    new THREE.Vector2(0.428, 0.200), // lower body
-    new THREE.Vector2(0.440, 0.680), // body widest
-    new THREE.Vector2(0.440, 1.290), // upper body
-    new THREE.Vector2(0.432, 1.500), // shoulder start
-    new THREE.Vector2(0.315, 1.658), // shoulder curve
-    new THREE.Vector2(0.205, 1.775), // neck
-    new THREE.Vector2(0.198, 1.930), // neck top
+    new THREE.Vector2(0.001, 0.000),
+    new THREE.Vector2(0.355, 0.000),
+    new THREE.Vector2(0.402, 0.065),
+    new THREE.Vector2(0.430, 0.210),
+    new THREE.Vector2(0.442, 0.700),
+    new THREE.Vector2(0.442, 1.300),
+    new THREE.Vector2(0.430, 1.510),
+    new THREE.Vector2(0.306, 1.665),
+    new THREE.Vector2(0.200, 1.780),
+    new THREE.Vector2(0.194, 1.935),
   ], [])
 
-  const mBody = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#edf2f8', roughness: 0.07, metalness: 0.04, envMapIntensity: 1.8,
-  }), [])
-
-  const mPump = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#e4eaf0', roughness: 0.24, metalness: 0.0, envMapIntensity: 1.2,
+  // Единый материал для всего флакона — однотонный белый
+  const mWhite = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#ecf1f7',
+    roughness: 0.10,
+    metalness: 0.03,
+    envMapIntensity: 2.0,
   }), [])
 
   const mLabel = useMemo(() => new THREE.MeshStandardMaterial({
-    map: labelTex, roughness: 0.28, metalness: 0.0,
-    polygonOffset: true, polygonOffsetFactor: -4,
+    map: labelTex,
+    roughness: 0.28,
+    metalness: 0.0,
+    polygonOffset: true,
+    polygonOffsetFactor: -4,
   }), [labelTex])
-
-  const mNozzle = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#d8e0e8', roughness: 0.14, metalness: 0.09, envMapIntensity: 2.0,
-  }), [])
 
   useFrame(({ clock }, delta) => {
     if (!groupRef.current) return
-    rotY.current      -= delta * 0.35                              // right-to-left
+    rotY.current -= delta * 0.35
     groupRef.current.rotation.y = rotY.current
+    groupRef.current.position.x = 0.63
     groupRef.current.position.y = -1.5 + Math.sin(clock.elapsedTime * 0.85) * 0.09
     groupRef.current.rotation.x = scrollProgress.get() * 0.26
   })
 
-  return (
-    // Initial rotation-y = π so the label faces the camera on first paint
-    <group ref={groupRef} rotation={[0, Math.PI, 0]} position={[0, -1.5, 0]}>
+  const COLLAR_TOP = 2.270
+  const ACT_H      = 0.360
+  const ACT_R      = 0.136
+  const ACT_CY     = COLLAR_TOP + ACT_H / 2
+  const ACT_TOP    = COLLAR_TOP + ACT_H
 
-      {/* ── Bottle body ── */}
-      <mesh material={mBody} castShadow receiveShadow>
+  const collarRibY = Array.from({ length: 8 }, (_, i) => 1.948 + i * 0.036)
+
+  return (
+    // scale=1.3 — флакон крупнее на 30%
+    <group ref={groupRef} rotation={[0, Math.PI, 0]} position={[0.63, -1.5, 0]} scale={1.17}>
+
+      {/* ── Тело флакона ── */}
+      <mesh material={mWhite} castShadow receiveShadow>
         <latheGeometry args={[bodyPts, 96]} />
       </mesh>
 
-      {/* ── Bottom cap ── */}
-      <mesh material={mBody} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
+      {/* ── Дно ── */}
+      <mesh material={mWhite} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
         <circleGeometry args={[0.355, 64]} />
       </mesh>
 
-      {/* ── Label band ── */}
+      {/* ── Этикетка ── */}
       <mesh material={mLabel} position={[0, 0.72, 0]}>
-        <cylinderGeometry args={[0.447, 0.447, 1.06, 80, 1, true]} />
+        <cylinderGeometry args={[0.449, 0.449, 1.06, 80, 1, true]} />
       </mesh>
 
-      {/* ── Neck ring (detail groove) ── */}
-      <mesh material={mPump} position={[0, 1.955, 0]}>
-        <cylinderGeometry args={[0.220, 0.220, 0.040, 48]} />
+      {/* ════ ПОМПА — однотонная, без торчащего носика ════ */}
+
+      {/* Коллар: переходный конус с горлышка */}
+      <mesh material={mWhite} position={[0, 1.944, 0]}>
+        <cylinderGeometry args={[0.226, 0.200, 0.028, 52]} />
       </mesh>
 
-      {/* ── Pump collar ── */}
-      <mesh material={mPump} position={[0, 2.100, 0]} castShadow>
-        <cylinderGeometry args={[0.215, 0.208, 0.330, 52]} />
+      {/* Коллар: основной цилиндр */}
+      <mesh material={mWhite} position={[0, 2.100, 0]} castShadow>
+        <cylinderGeometry args={[0.226, 0.226, 0.294, 52]} />
       </mesh>
 
-      {/* ── Pump collar top ring ── */}
-      <mesh material={mPump} position={[0, 2.268, 0]}>
-        <cylinderGeometry args={[0.222, 0.215, 0.040, 48]} />
+      {/* Коллар: 8 рёбер */}
+      {collarRibY.map((y, i) => (
+        <mesh key={i} material={mWhite} position={[0, y, 0]}>
+          <cylinderGeometry args={[0.234, 0.234, 0.011, 52]} />
+        </mesh>
+      ))}
+
+      {/* Коллар: верхний конус переходит в актуатор */}
+      <mesh material={mWhite} position={[0, COLLAR_TOP - 0.015, 0]}>
+        <cylinderGeometry args={[ACT_R + 0.004, 0.226, 0.032, 52]} />
       </mesh>
 
-      {/* ── Pump inner stub ── */}
-      <mesh material={mPump} position={[0, 2.320, 0]}>
-        <cylinderGeometry args={[0.175, 0.175, 0.060, 32]} />
+      {/* Актуатор: основной цилиндр — того же белого цвета */}
+      <mesh material={mWhite} position={[0, ACT_CY, 0]} castShadow>
+        <cylinderGeometry args={[ACT_R, ACT_R + 0.004, ACT_H, 40]} />
       </mesh>
 
-      {/* ── Nozzle stem ── */}
-      <mesh material={mNozzle} position={[0, 2.660, 0]} castShadow>
-        <cylinderGeometry args={[0.032, 0.032, 0.620, 24]} />
+      {/* Актуатор: плоская крышка */}
+      <mesh material={mWhite} position={[0, ACT_TOP, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[ACT_R, 40]} />
       </mesh>
 
-      {/* ── Spray head horizontal arm ── */}
-      <mesh material={mPump} position={[0.068, 2.965, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-        <cylinderGeometry args={[0.050, 0.040, 0.165, 24]} />
-      </mesh>
-
-      {/* ── Spray head vertical connector ── */}
-      <mesh material={mPump} position={[0, 2.925, 0]}>
-        <cylinderGeometry args={[0.038, 0.033, 0.080, 20]} />
-      </mesh>
-
-      {/* ── Nozzle tip sphere ── */}
-      <mesh material={mNozzle} position={[0.152, 2.965, 0]}>
-        <sphereGeometry args={[0.042, 20, 20]} />
-      </mesh>
-
-      {/* ── Orifice hole ── */}
-      <mesh position={[0.195, 2.965, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.012, 0.012, 0.010, 12]} />
-        <meshBasicMaterial color="#0a0a0a" />
+      {/* Актуатор: верхний бортик */}
+      <mesh material={mWhite} position={[0, ACT_TOP - 0.010, 0]}>
+        <cylinderGeometry args={[ACT_R + 0.005, ACT_R, 0.020, 40]} />
       </mesh>
 
     </group>
   )
 }
 
-/* ─── Lights + environment ─── */
+/* ─── Свет ─── */
 function Scene({ scrollProgress }) {
   return (
     <>
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[3, 7, 5]}  intensity={2.2} castShadow
+      <ambientLight intensity={0.65} />
+      <directionalLight position={[1, 6, 6]}  intensity={2.4} castShadow
         shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
-      <directionalLight position={[-4, 3, -2]} intensity={0.5} color="#b0d4ff" />
-      <directionalLight position={[2, 1, -5]}  intensity={0.6} />
-      <pointLight position={[0, -2.5, 1.5]} intensity={5} color={GRN} distance={8} decay={2} />
+      <directionalLight position={[-5, 2, 1]} intensity={0.6} color="#b8d4f0" />
+      <directionalLight position={[3, 0, -4]} intensity={0.7} color="#e0f0ff" />
+      <pointLight position={[0, -2.2, 1.8]} intensity={6} color={GRN} distance={8} decay={2} />
 
       <Suspense fallback={null}>
         <Environment preset="studio" />
         <BottleScene scrollProgress={scrollProgress} />
         <ContactShadows
-          position={[0, -1.56, 0]} opacity={0.45} scale={3} blur={2.8} color={GRN}
+          position={[0, -1.56, 0]} opacity={0.50} scale={3.5} blur={2.5} color={GRN}
         />
       </Suspense>
     </>
   )
 }
 
-/* ─── Public export — scrollProgress is optional ─── */
+/* ─── Экспорт ─── */
 export default function SprayBottle3D({ scrollProgress: sp }) {
-  const zero = useMotionValue(0)               // fallback when used without scroll
+  const zero = useMotionValue(0)
   const scrollProgress = sp ?? zero
   return (
     <Canvas
