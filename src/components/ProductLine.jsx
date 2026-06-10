@@ -9,7 +9,7 @@ export const PRODUCTS = [
     desc: 'Три масла — чайное дерево, пихта, эвкалипт. Накопительный эффект, нейтрализует запах после тренировок.',
     price: 2690,
     oldPrice: 3490,
-    image: '/images/idez-sport.jpg',
+    image: '/images/idez-sport.png',
     badge: null,
     accent: '#00c878',
     strength: 2,
@@ -22,7 +22,7 @@ export const PRODUCTS = [
     desc: 'Максимальная концентрация. Убивает самые мощные запахи от единоборств, бокса и борьбы.',
     price: 3990,
     oldPrice: 4990,
-    image: '/images/idez-fight.jpg',
+    image: '/images/idez-fight.png',
     badge: 'НОВИНКА',
     accent: '#e03a1a',
     strength: 3,
@@ -35,7 +35,7 @@ export const PRODUCTS = [
     desc: 'Лёгкая формула для ежедневного применения. Также - пероклассая свежесть.',
     price: 2290,
     oldPrice: 2990,
-    image: '/images/idez-shoes.jpg',
+    image: '/images/idez-shoes.png',
     badge: 'НОВИНКА',
     accent: '#e07820',
     strength: 1,
@@ -173,7 +173,7 @@ export default function ProductLine({ onSelect }) {
           align-items: center;
           justify-content: center;
           padding: 0;
-          height: 320px;
+          height: 432px;
         }
         .pl__img {
           height: 90%;
@@ -280,7 +280,7 @@ export default function ProductLine({ onSelect }) {
 
         @media (max-width: 900px) {
           .pl__grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
-          .pl__img-wrap { height: 220px; }
+          .pl__img-wrap { height: 297px; }
         }
       `}</style>
     </section>

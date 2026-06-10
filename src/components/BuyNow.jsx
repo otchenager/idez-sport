@@ -217,8 +217,8 @@ export default function BuyNow({ selectedId, onSelect }) {
 
         /* Product image */
         .buy__img-wrap {
-          flex: 0 0 280px;
-          height: 380px;
+          flex: 0 0 378px;
+          height: 513px;
           background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 70%);
           display: flex;
           align-items: center;
@@ -346,7 +346,7 @@ export default function BuyNow({ selectedId, onSelect }) {
         @media (max-width: 768px) {
           .buy__card { padding: 28px 16px; }
           .buy__price-block { flex-direction: column; padding: 16px 0; }
-          .buy__img-wrap { flex: none; width: 100%; height: 240px; }
+          .buy__img-wrap { flex: none; width: 100%; height: 324px; }
           .buy__pricing { padding-left: 0; padding-top: 20px; }
           .order-form__submit { width: 100%; text-align: center; align-self: stretch; padding: 16px; }
           .buy__new-price { font-size: 3rem; }
