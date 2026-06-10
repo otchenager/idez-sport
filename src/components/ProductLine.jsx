@@ -168,18 +168,18 @@ export default function ProductLine({ onSelect }) {
         }
 
         .pl__img-wrap {
-          background: #f5f7fa;
+          background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 70%);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 24px 16px;
-          height: 260px;
+          padding: 0;
+          height: 320px;
         }
         .pl__img {
-          height: 100%;
+          height: 90%;
           width: auto;
           object-fit: contain;
-          filter: drop-shadow(0 8px 24px rgba(0,0,0,0.18));
+          filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6)) drop-shadow(0 0 60px color-mix(in srgb, var(--accent) 20%, transparent));
           transition: transform 0.4s ease;
         }
         .pl__card:hover .pl__img { transform: scale(1.04) translateY(-4px); }

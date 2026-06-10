@@ -219,17 +219,17 @@ export default function BuyNow({ selectedId, onSelect }) {
         .buy__img-wrap {
           flex: 0 0 280px;
           height: 380px;
-          background: #f5f7fa;
+          background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 70%);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 16px;
+          padding: 0;
         }
         .buy__img {
-          height: 100%;
+          height: 90%;
           width: auto;
           object-fit: contain;
-          filter: drop-shadow(0 12px 32px rgba(0,0,0,0.15));
+          filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6)) drop-shadow(0 0 60px color-mix(in srgb, var(--accent) 20%, transparent));
         }
 
         /* Pricing column */
