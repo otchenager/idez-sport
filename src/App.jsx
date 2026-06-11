@@ -6,6 +6,7 @@ import Compare from './components/Compare'
 import HowToUse from './components/HowToUse'
 import ProductLine from './components/ProductLine'
 import Reviews from './components/Reviews'
+import Guarantee from './components/Guarantee'
 import BuyNow from './components/BuyNow'
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
       <HowToUse />
       <ProductLine onSelect={handleSelectProduct} />
       <Reviews />
+      <Guarantee />
       <BuyNow selectedId={selectedProduct} onSelect={setSelectedProduct} />
       <footer style={{
         background: '#0a0a0a',

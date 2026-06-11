@@ -2,25 +2,50 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { PRODUCTS } from './ProductLine'
 
-const PHONE_DISPLAY = '+7 775 142 66 74'
-const PHONE_HREF    = 'tel:+77751426674'
-const WA_NUMBER     = '77751426674'
-
 function OrderForm({ product }) {
-  const [name, setName]   = useState('')
-  const [phone, setPhone] = useState('')
+  const [name, setName]       = useState('')
+  const [phone, setPhone]     = useState('')
   const [address, setAddress] = useState('')
-  const [error, setError] = useState('')
-  const [done, setDone]   = useState(false)
+  const [error, setError]     = useState('')
+  const [done, setDone]       = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    if (!name.trim())  { setError('Введите ваше имя'); return }
-    if (!phone.trim()) { setError('Введите номер телефона'); return }
+    if (!name.trim())    { setError('Введите ваше имя'); return }
+    if (!phone.trim())   { setError('Введите номер телефона'); return }
+    if (!address.trim()) { setError('Введите адрес доставки'); return }
     setError('')
-    const text = `Заказ ${product.name} 100мл\nЦена: ${product.price.toLocaleString('ru')} ₸\nИмя: ${name.trim()}\nТелефон: ${phone.trim()}\nАдрес: ${address.trim() || 'не указан'}`
-    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`, '_blank')
-    setDone(true)
+    setLoading(true)
+    try {
+      const BOT_TOKEN = import.meta.env.VITE_TG_BOT_TOKEN
+      const CHAT_ID   = import.meta.env.VITE_TG_CHAT_ID
+      const text = [
+        '🛒 *Новый заказ iDEZ SPORT*',
+        `📦 Товар: ${product.name}`,
+        `💰 Цена: ${product.price.toLocaleString('ru')} ₸`,
+        `👤 Имя: ${name.trim()}`,
+        `📞 Телефон: ${phone.trim()}`,
+        `📍 Адрес: ${address.trim()}`,
+      ].join('\n')
+      await fetch(
+        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text,
+            parse_mode: 'Markdown',
+          }),
+        }
+      )
+      setDone(true)
+    } catch (err) {
+      setError('Ошибка отправки. Попробуйте ещё раз.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (done) {
@@ -35,8 +60,7 @@ function OrderForm({ product }) {
         <span className="order-success__icon" style={{ color: product.accent }}>✓</span>
         <p className="order-success__title">Заявка отправлена!</p>
         <p className="order-success__sub">
-          Свяжемся в течение 15 минут. Или позвоните:&nbsp;
-          <a href={PHONE_HREF} style={{ color: product.accent }}>{PHONE_DISPLAY}</a>
+          Свяжемся с вами в течение 15 минут.
         </p>
       </motion.div>
     )
@@ -75,15 +99,10 @@ function OrderForm({ product }) {
         type="submit"
         className="order-form__submit"
         style={{ background: product.accent }}
+        disabled={loading}
       >
-        Заказать сейчас
+        {loading ? 'Отправляем...' : 'Заказать сейчас'}
       </button>
-      <p className="order-form__hint">
-        Или позвоните:&nbsp;
-        <a href={PHONE_HREF} style={{ color: product.accent, textDecoration: 'none' }}>
-          {PHONE_DISPLAY}
-        </a>
-      </p>
     </form>
   )
 }
@@ -324,7 +343,7 @@ export default function BuyNow({ selectedId, onSelect }) {
           transition: opacity 0.2s;
         }
         .order-form__submit:hover { opacity: 0.85; }
-        .order-form__hint { font-size: 0.8rem; color: var(--txt2); margin: 0; }
+        .order-form__submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
         /* Success */
         .order-success {
