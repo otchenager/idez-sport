@@ -6,16 +6,10 @@ const PHONE_DISPLAY = '+7 775 142 66 74'
 const PHONE_HREF    = 'tel:+77751426674'
 const WA_NUMBER     = '77751426674'
 
-const guarantees = [
-  { icon: '↩', label: 'Возврат 30 дней' },
-  { icon: '🚚', label: 'Бесплатно от 8 000 ₸' },
-  { icon: '🌿', label: 'Натуральный состав' },
-  { icon: '✓',  label: 'Без скрытых доплат' },
-]
-
 function OrderForm({ product }) {
   const [name, setName]   = useState('')
   const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
   const [error, setError] = useState('')
   const [done, setDone]   = useState(false)
 
@@ -24,7 +18,7 @@ function OrderForm({ product }) {
     if (!name.trim())  { setError('Введите ваше имя'); return }
     if (!phone.trim()) { setError('Введите номер телефона'); return }
     setError('')
-    const text = `Заказ ${product.name} 100мл\nЦена: ${product.price.toLocaleString('ru')} ₸\nИмя: ${name.trim()}\nТелефон: ${phone.trim()}`
+    const text = `Заказ ${product.name} 100мл\nЦена: ${product.price.toLocaleString('ru')} ₸\nИмя: ${name.trim()}\nТелефон: ${phone.trim()}\nАдрес: ${address.trim() || 'не указан'}`
     window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`, '_blank')
     setDone(true)
   }
@@ -61,6 +55,20 @@ function OrderForm({ product }) {
         <input id="order-phone" className="order-form__input" type="tel"
           placeholder="+7 999 000 00 00" value={phone} onChange={e => setPhone(e.target.value)}
           autoComplete="tel" />
+      </div>
+      <div className="order-form__field">
+        <label className="order-form__label" htmlFor="order-address">
+          Адрес доставки
+        </label>
+        <input
+          id="order-address"
+          className="order-form__input"
+          type="text"
+          placeholder="Город, улица, дом, квартира"
+          value={address}
+          onChange={e => setAddress(e.target.value)}
+          autoComplete="street-address"
+        />
       </div>
       {error && <p className="order-form__error">{error}</p>}
       <button
@@ -142,14 +150,13 @@ export default function BuyNow({ selectedId, onSelect }) {
             </div>
           </motion.div>
 
-          {/* Guarantees */}
-          <div className="buy__guarantees">
-            {guarantees.map((g, i) => (
-              <div key={i} className="buy__guarantee">
-                <span className="buy__guarantee-icon" style={{ color: product.accent }}>{g.icon}</span>
-                <span className="buy__guarantee-label">{g.label}</span>
-              </div>
-            ))}
+          {/* Delivery */}
+          <div className="buy__delivery">
+            <span className="buy__delivery-icon">🚚</span>
+            <div className="buy__delivery-lines">
+              <span className="buy__delivery-text">БЕСПЛАТНАЯ ДОСТАВКА КУРЬЕРОМ</span>
+              <span className="buy__delivery-sub">В ДЕНЬ ЗАКАЗА</span>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -333,15 +340,38 @@ export default function BuyNow({ selectedId, onSelect }) {
         }
         .order-success__sub { font-size: 0.88rem; color: var(--txt2); line-height: 1.6; margin: 0; }
 
-        /* Guarantees */
-        .buy__guarantees {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
+        /* Delivery */
+        .buy__delivery {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           gap: 16px;
+          padding: 32px 0 0;
+          border-top: 1px solid var(--blk5);
+          margin-top: 8px;
         }
-        .buy__guarantee { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
-        .buy__guarantee-icon { font-size: 1.4rem; }
-        .buy__guarantee-label { font-size: 0.8rem; color: var(--txt2); font-weight: 300; }
+        .buy__delivery-icon { font-size: 2.4rem; }
+        .buy__delivery-lines {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .buy__delivery-text {
+          font-family: var(--font-head);
+          font-size: clamp(1.6rem, 3vw, 2.4rem);
+          font-weight: 900;
+          letter-spacing: 0.06em;
+          color: var(--txt);
+          line-height: 1;
+        }
+        .buy__delivery-sub {
+          font-family: var(--font-head);
+          font-size: clamp(1rem, 2vw, 1.5rem);
+          font-weight: 900;
+          letter-spacing: 0.12em;
+          color: var(--em);
+          line-height: 1;
+        }
 
         @media (max-width: 768px) {
           .buy__card { padding: 28px 16px; }
@@ -350,7 +380,6 @@ export default function BuyNow({ selectedId, onSelect }) {
           .buy__pricing { padding-left: 0; padding-top: 20px; }
           .order-form__submit { width: 100%; text-align: center; align-self: stretch; padding: 16px; }
           .buy__new-price { font-size: 3rem; }
-          .buy__guarantees { grid-template-columns: repeat(2, 1fr); }
           .buy__tab { min-width: 100px; padding: 10px 14px; }
         }
       `}</style>
