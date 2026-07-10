@@ -1,14 +1,51 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { PRODUCTS } from './ProductLine'
+import { PRODUCTS } from '../data/products'
+
+const POLL_INTERVAL_MS = 3000
+const POLL_TIMEOUT_MS = 5 * 60 * 1000
+const FAILED_STATUS_TEXT = {
+  cancelled: 'Оплата отменена.',
+  expired: 'Время на подтверждение оплаты истекло.',
+  error: 'Не удалось провести оплату.',
+}
 
 function OrderForm({ product }) {
   const [name, setName]       = useState('')
   const [phone, setPhone]     = useState('')
   const [address, setAddress] = useState('')
   const [error, setError]     = useState('')
-  const [done, setDone]       = useState(false)
-  const [loading, setLoading] = useState(false)
+  // stage: 'form' | 'submitting' | 'awaiting_payment' | 'paid' | 'failed'
+  const [stage, setStage]     = useState('form')
+  const pollRef = useRef(null)
+
+  useEffect(() => () => clearInterval(pollRef.current), [])
+
+  function pollInvoice(invoiceId) {
+    const deadline = Date.now() + POLL_TIMEOUT_MS
+    pollRef.current = setInterval(async () => {
+      if (Date.now() > deadline) {
+        clearInterval(pollRef.current)
+        setStage('failed')
+        setError('Не дождались подтверждения оплаты. Проверьте приложение Kaspi или попробуйте ещё раз.')
+        return
+      }
+      try {
+        const res = await fetch(`/api/apipay/status?id=${invoiceId}`)
+        const data = await res.json()
+        if (data.status === 'paid') {
+          clearInterval(pollRef.current)
+          setStage('paid')
+        } else if (FAILED_STATUS_TEXT[data.status]) {
+          clearInterval(pollRef.current)
+          setStage('failed')
+          setError(FAILED_STATUS_TEXT[data.status])
+        }
+      } catch {
+        // transient network error — keep polling until deadline
+      }
+    }, POLL_INTERVAL_MS)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -16,39 +53,39 @@ function OrderForm({ product }) {
     if (!phone.trim())   { setError('Введите номер телефона'); return }
     if (!address.trim()) { setError('Введите адрес доставки'); return }
     setError('')
-    setLoading(true)
+    setStage('submitting')
     try {
-      const BOT_TOKEN = import.meta.env.VITE_TG_BOT_TOKEN
-      const CHAT_ID   = import.meta.env.VITE_TG_CHAT_ID
-      const text = [
-        '🛒 *Новый заказ iDEZ SPORT*',
-        `📦 Товар: ${product.name}`,
-        `💰 Цена: ${product.price.toLocaleString('ru')} ₸`,
-        `👤 Имя: ${name.trim()}`,
-        `📞 Телефон: ${phone.trim()}`,
-        `📍 Адрес: ${address.trim()}`,
-      ].join('\n')
-      await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text,
-            parse_mode: 'Markdown',
-          }),
-        }
-      )
-      setDone(true)
+      const res = await fetch('/api/apipay/create-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          name: name.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Ошибка оформления заказа. Попробуйте ещё раз.')
+        setStage('form')
+        return
+      }
+      setStage('awaiting_payment')
+      pollInvoice(data.invoiceId)
     } catch (err) {
       setError('Ошибка отправки. Попробуйте ещё раз.')
-    } finally {
-      setLoading(false)
+      setStage('form')
     }
   }
 
-  if (done) {
+  function handleRetry() {
+    clearInterval(pollRef.current)
+    setError('')
+    setStage('form')
+  }
+
+  if (stage === 'paid') {
     return (
       <motion.div
         className="order-success"
@@ -58,10 +95,51 @@ function OrderForm({ product }) {
         transition={{ duration: 0.4 }}
       >
         <span className="order-success__icon" style={{ color: product.accent }}>✓</span>
-        <p className="order-success__title">Заявка отправлена!</p>
+        <p className="order-success__title">Оплата получена!</p>
         <p className="order-success__sub">
-          Свяжемся с вами в течение 15 минут.
+          Заказ оформлен. Свяжемся с вами в течение 15 минут.
         </p>
+      </motion.div>
+    )
+  }
+
+  if (stage === 'awaiting_payment') {
+    return (
+      <motion.div
+        className="order-success order-pending"
+        style={{ borderColor: product.accent }}
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4 }}
+      >
+        <span className="order-pending__spinner" style={{ borderTopColor: product.accent }} />
+        <p className="order-success__title">Ждём подтверждение оплаты</p>
+        <p className="order-success__sub">
+          Откройте приложение Kaspi.kz — вам пришёл запрос на оплату на номер {phone.trim()}.
+        </p>
+      </motion.div>
+    )
+  }
+
+  if (stage === 'failed') {
+    return (
+      <motion.div
+        className="order-success order-failed"
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4 }}
+      >
+        <span className="order-success__icon order-failed__icon">✕</span>
+        <p className="order-success__title">Оплата не прошла</p>
+        <p className="order-success__sub">{error}</p>
+        <button
+          type="button"
+          className="order-form__submit"
+          style={{ background: product.accent, marginTop: 8 }}
+          onClick={handleRetry}
+        >
+          Попробовать снова
+        </button>
       </motion.div>
     )
   }
@@ -75,7 +153,7 @@ function OrderForm({ product }) {
           autoComplete="given-name" />
       </div>
       <div className="order-form__field">
-        <label className="order-form__label" htmlFor="order-phone">Номер телефона</label>
+        <label className="order-form__label" htmlFor="order-phone">Номер телефона (Kaspi)</label>
         <input id="order-phone" className="order-form__input" type="tel"
           placeholder="+7 999 000 00 00" value={phone} onChange={e => setPhone(e.target.value)}
           autoComplete="tel" />
@@ -99,9 +177,9 @@ function OrderForm({ product }) {
         type="submit"
         className="order-form__submit"
         style={{ background: product.accent }}
-        disabled={loading}
+        disabled={stage === 'submitting'}
       >
-        {loading ? 'Отправляем...' : 'Заказать сейчас'}
+        {stage === 'submitting' ? 'Создаём счёт...' : 'Оплатить через Kaspi'}
       </button>
     </form>
   )
@@ -174,7 +252,7 @@ export default function BuyNow({ selectedId, onSelect }) {
             <span className="buy__delivery-icon">🚚</span>
             <div className="buy__delivery-lines">
               <span className="buy__delivery-text">БЕСПЛАТНАЯ ДОСТАВКА КУРЬЕРОМ</span>
-              <span className="buy__delivery-sub">В ДЕНЬ ЗАКАЗА</span>
+              <span className="buy__delivery-sub">ЗА 24 ЧАСА</span>
             </div>
           </div>
         </motion.div>
@@ -358,6 +436,20 @@ export default function BuyNow({ selectedId, onSelect }) {
           text-transform: uppercase; color: var(--txt); margin: 0;
         }
         .order-success__sub { font-size: 0.88rem; color: var(--txt2); line-height: 1.6; margin: 0; }
+
+        /* Awaiting payment */
+        .order-pending__spinner {
+          width: 32px; height: 32px;
+          border: 3px solid var(--blk5);
+          border-top-color: var(--em);
+          border-radius: 50%;
+          animation: order-spin 0.8s linear infinite;
+        }
+        @keyframes order-spin { to { transform: rotate(360deg); } }
+
+        /* Failed */
+        .order-failed { border-color: #ff5555; }
+        .order-failed__icon { color: #ff5555; }
 
         /* Delivery */
         .buy__delivery {
