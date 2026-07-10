@@ -5,6 +5,7 @@ export const config = {
   api: {
     bodyParser: false,
   },
+  maxDuration: 10,
 }
 
 // Best-effort in-process dedupe. Survives repeated retries within one warm
@@ -53,6 +54,8 @@ export default async function handler(req, res) {
     return
   }
 
+  console.log('[webhook] event:', payload.event)
+
   if (payload.event === 'invoice.status_changed' && payload.invoice) {
     const { id, external_order_id, amount, status } = payload.invoice
     const dedupeKey = `invoice:${id}:${status}`
@@ -65,7 +68,10 @@ export default async function handler(req, res) {
         `Сумма: ${Number(amount).toLocaleString('ru')} ₸`,
       ].join('\n')).catch(err => console.error('telegram send failed:', err))
     }
+    return
   }
 
-
+  // Any event we don't explicitly handle (pings, other event types, etc.)
+  // still needs a response — otherwise the connection hangs until maxDuration.
+  res.status(200).json({ received: true, ignored: true })
 }
